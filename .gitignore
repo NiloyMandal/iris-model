@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.env
+venv/
+env/
+.venv/
+# model.pkl is explicitly NOT ignored since it's required for deployment
+# We will track model.pkl for this specific deployment task
