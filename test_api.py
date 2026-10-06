@@ -33,3 +33,19 @@ def test_invalid_input():
     with TestClient(app) as client:
         response = client.post("/predict", json=payload)
         assert response.status_code == 422 # Unprocessable Entity (Validation Error)
+
+def test_predict_returns_probabilities():
+    payload = {"sepal_length": 6.3, "sepal_width": 3.3, "petal_length": 6.0, "petal_width": 2.5}
+    with TestClient(app) as client:
+        data = client.post("/predict", json=payload).json()
+        assert set(data["probabilities"]) == {"setosa", "versicolor", "virginica"}
+        assert abs(sum(data["probabilities"].values()) - 1.0) < 1e-3
+        assert data["confidence"] == data["probabilities"][data["species"]]
+
+def test_samples_endpoint():
+    with TestClient(app) as client:
+        response = client.get("/samples")
+        assert response.status_code == 200
+        rows = response.json()
+        assert len(rows) == 150
+        assert {"sepal_length", "sepal_width", "petal_length", "petal_width", "species"} <= set(rows[0])

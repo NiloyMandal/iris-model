@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>The Flower Classification Lab · Iris Species Predictor</title>
   <meta name="description" content="Explore how four simple measurements help a trained machine learning model tell three Iris species apart. Pick a sample or measure your own." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg fill='%237259ad'%3E%3Cellipse cx='16' cy='9' rx='5' ry='8'/%3E%3Cellipse cx='9' cy='20' rx='5' ry='8' transform='rotate(-60 9 20)'/%3E%3Cellipse cx='23' cy='20' rx='5' ry='8' transform='rotate(60 23 20)'/%3E%3C/g%3E%3Ccircle cx='16' cy='16' r='3' fill='%23e2c46b'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -159,7 +160,7 @@
     }
     .figure svg {
       width: 100%;
-      max-width: 320px;
+      max-width: 370px;
       height: auto;
       overflow: visible;
     }
@@ -504,6 +505,166 @@
     .explain strong { display: block; color: var(--ink); font-weight: 600; margin-bottom: 2px; }
     .explain p { margin: 0; }
 
+    /* Confidence */
+    .conf {
+      font-family: var(--sans);
+      font-style: normal;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--purple);
+      background: #fff;
+      border: 1px solid #e0d7f2;
+      border-radius: 999px;
+      padding: 3px 9px;
+      margin-left: 6px;
+      vertical-align: middle;
+      letter-spacing: 0;
+    }
+    .probs { display: grid; gap: 7px; margin-top: 14px; }
+    .prob {
+      display: grid;
+      grid-template-columns: 74px 1fr 38px;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      color: var(--ink-soft);
+    }
+    .prob.top { color: var(--ink); font-weight: 600; }
+    .prob-track { height: 6px; border-radius: 999px; background: #ebe9f1; overflow: hidden; }
+    .prob-fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: var(--c);
+      transition: width 1s var(--ease);
+    }
+    .prob-pct { text-align: right; font-variant-numeric: tabular-nums; }
+
+    /* Illustration callouts */
+    .callout text { font-family: var(--sans); fill: var(--ink-soft); transition: fill .3s; }
+    .callout .c-title { font-size: 8px; font-weight: 600; letter-spacing: .18em; }
+    .callout .c-val { font-family: var(--serif); font-style: italic; font-size: 11px; }
+    .callout line { stroke: #9aa486; stroke-width: .8; stroke-dasharray: 2 2; transition: stroke .3s; }
+    .callout circle { fill: #9aa486; transition: fill .3s, r .3s; }
+    .callout.hl text { fill: var(--purple); }
+    .callout.hl line { stroke: var(--purple); stroke-dasharray: none; }
+    .callout.hl circle { fill: var(--purple); r: 3.6; }
+
+    /* ---------- Atlas (scatter) ---------- */
+    .atlas {
+      margin-top: 22px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+      gap: 30px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 26px 26px 22px;
+      box-shadow: 0 1px 0 rgba(31, 46, 40, .02), 0 18px 40px -28px rgba(31, 46, 40, .18);
+      animation: rise .9s .36s var(--ease) both;
+    }
+    .atlas-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .atlas .eyebrow { font-size: 10.5px; margin-bottom: 6px; }
+    .atlas h2 {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: 27px;
+      letter-spacing: -.01em;
+      margin: 0;
+    }
+    .atlas h2 em { color: var(--purple); }
+    .atlas-sub { font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0; }
+    .seg {
+      display: inline-flex;
+      background: #f3f2ed;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 3px;
+    }
+    .seg-btn {
+      font: inherit;
+      font-size: 11.5px;
+      color: var(--ink-soft);
+      background: transparent;
+      border: 0;
+      border-radius: 6px;
+      padding: 5px 12px;
+      cursor: pointer;
+      transition: background .2s, color .2s, box-shadow .2s;
+    }
+    .seg-btn:hover { color: var(--ink); }
+    .seg-btn.active {
+      background: #fff;
+      color: var(--ink);
+      box-shadow: 0 1px 2px rgba(31, 46, 40, .08), 0 0 0 1px var(--line);
+    }
+
+    #scatter { display: block; width: 100%; height: auto; overflow: visible; }
+    #scatter .grid { stroke: #efeee8; }
+    #scatter .axis { stroke: #cfcfc5; }
+    #scatter .tick { font: 10px var(--sans); fill: var(--muted); }
+    #scatter .axis-label { font: 10.5px var(--sans); fill: var(--ink-soft); letter-spacing: .02em; }
+    #scatter .pt { opacity: .72; stroke: #fff; stroke-width: 1; cursor: default; }
+    #scatter .pt:hover { opacity: 1; }
+    #scatter .pt.nb { opacity: 1; stroke: var(--ink); stroke-width: 1.6; }
+    #scatter.ready .pt { transition: transform .8s var(--ease), opacity .3s, stroke-width .3s; }
+    #scatter.ready .cross,
+    #scatter.ready .you { transition: transform .35s var(--ease), opacity .3s; }
+    #sc-points { animation: fade 1s .2s both; }
+    @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+    #scatter .cross line { stroke: var(--ink); stroke-opacity: .22; stroke-dasharray: 3 4; }
+    .you-ring { fill: #fff; stroke: var(--ink); stroke-width: 2; }
+    .you-dot { fill: var(--ink); }
+    .you-pulse {
+      fill: none;
+      stroke: var(--ink);
+      stroke-opacity: .4;
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: pulse 2.2s ease-out infinite;
+    }
+    @keyframes pulse {
+      from { transform: scale(1); opacity: .9; }
+      to { transform: scale(2.4); opacity: 0; }
+    }
+    .you text { font: 600 10px var(--sans); fill: var(--ink); letter-spacing: .08em; }
+
+    .atlas-side { display: flex; flex-direction: column; gap: 18px; padding-top: 6px; }
+    .lg-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 12.5px;
+    }
+    .lg-row:last-child { border-bottom: 0; }
+    .lg-row i { width: 9px; height: 9px; border-radius: 50%; }
+    .lg-row em { font-family: var(--serif); font-size: 15px; }
+    .lg-row span { margin-left: auto; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .neighbors {
+      background: var(--sage);
+      border: 1px solid var(--sage-line);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+    }
+    .nb-title { font-family: var(--serif); font-size: 20px; margin: 0 0 8px; letter-spacing: -.01em; }
+    .nb-dots { display: flex; gap: 6px; margin-bottom: 8px; }
+    .nb-dots span {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      box-shadow: 0 0 0 2px #fff;
+      transition: background .3s;
+    }
+    .atlas-note { font-size: 11.5px; color: var(--ink-soft); margin: 0; }
+
     /* ---------- Footer ---------- */
     footer {
       display: flex;
@@ -522,6 +683,7 @@
     /* ---------- Responsive ---------- */
     @media (max-width: 860px) {
       .lab { grid-template-columns: 1fr; }
+      .atlas { grid-template-columns: 1fr; }
       .figure { min-height: 320px; }
     }
     @media (max-width: 480px) {
@@ -621,6 +783,20 @@
                 <circle r="4" fill="#d9b450" />
               </g>
             </g>
+
+            <!-- Live measurement callouts -->
+            <g class="callout" id="callout-petal">
+              <line x1="167" y1="126" x2="226" y2="74" />
+              <circle cx="167" cy="126" r="2.5" />
+              <text class="c-title" x="230" y="66">PETAL</text>
+              <text class="c-val" x="230" y="81" id="c-petal-val">– × – cm</text>
+            </g>
+            <g class="callout" id="callout-sepal">
+              <line x1="117" y1="191" x2="72" y2="152" />
+              <circle cx="117" cy="191" r="2.5" />
+              <text class="c-title" x="68" y="140" text-anchor="end">SEPAL</text>
+              <text class="c-val" x="68" y="155" text-anchor="end" id="c-sepal-val">– × – cm</text>
+            </g>
           </svg>
 
           <div class="figure-caption">
@@ -710,6 +886,39 @@
           </div>
         </details>
       </section>
+    </section>
+
+    <!-- ============ Atlas: user's flower among the dataset ============ -->
+    <section class="atlas" aria-labelledby="atlas-title">
+      <div class="atlas-chart">
+        <div class="atlas-head">
+          <div>
+            <p class="eyebrow">Field notes</p>
+            <h2 id="atlas-title">Where your flower <em>sits.</em></h2>
+            <p class="atlas-sub">Each dot is one of <span id="atlas-count">150</span> real flowers. The ring is yours, so drag a slider and watch it move.</p>
+          </div>
+          <div class="seg" role="group" aria-label="Chart view">
+            <button type="button" class="seg-btn active" id="view-petal" data-view="petal" aria-pressed="true">Petals</button>
+            <button type="button" class="seg-btn" id="view-sepal" data-view="sepal" aria-pressed="false">Sepals</button>
+          </div>
+        </div>
+        <svg id="scatter" viewBox="0 0 600 340" role="img" aria-label="Scatter plot of iris measurements with your flower highlighted"></svg>
+      </div>
+
+      <aside class="atlas-side">
+        <div>
+          <div class="lg-row"><i style="background:#7fa36f"></i><em>Setosa</em><span id="lg-setosa">–</span></div>
+          <div class="lg-row"><i style="background:#d1a24a"></i><em>Versicolor</em><span id="lg-versicolor">–</span></div>
+          <div class="lg-row"><i style="background:#7259ad"></i><em>Virginica</em><span id="lg-virginica">–</span></div>
+        </div>
+        <div class="neighbors" aria-live="polite">
+          <p class="result-label">Nearest neighbours</p>
+          <p class="nb-title" id="nb-title">–</p>
+          <div class="nb-dots" id="nb-dots"></div>
+          <p class="result-text" id="nb-detail">The 5 most similar recorded flowers across all four measurements.</p>
+        </div>
+        <p class="atlas-note">Petals separate the species far more cleanly than sepals. Switch views to see why the model leans on them.</p>
+      </aside>
     </section>
 
     <footer>
@@ -806,6 +1015,10 @@
 
         document.querySelectorAll(".petal").forEach((p) => p.style.transform = `scale(${petalX}, ${petalY})`);
         document.querySelectorAll(".fall").forEach((p) => p.style.transform = `scale(${fallX}, ${fallY})`);
+
+        const fmt = (n) => Number.isFinite(n) ? n.toFixed(1) : "–";
+        $("c-petal-val").textContent = `${fmt(v.petal_length)} × ${fmt(v.petal_width)} cm`;
+        $("c-sepal-val").textContent = `${fmt(v.sepal_length)} × ${fmt(v.sepal_width)} cm`;
       }
 
       function setFlowerColors(species) {
@@ -856,21 +1069,42 @@
           </div>`;
       }
 
-      function renderResult(raw) {
+      function animateBars() {
+        requestAnimationFrame(() => requestAnimationFrame(() =>
+          resultBody.querySelectorAll(".prob-fill").forEach((el) => el.style.width = el.dataset.w + "%")));
+      }
+
+      function renderResult(data) {
+        const raw = data.species;
         const key = String(raw).toLowerCase().replace(/^iris[-_ ]?/, "");
         const info = SPECIES[key];
         hasResult = true;
         resultEl.className = "result done";
+
+        const probs = data.probabilities || {};
+        const hasProbs = Object.keys(probs).length > 0;
+        const confPill = hasProbs && typeof data.confidence === "number"
+          ? `<span class="conf">${Math.round(data.confidence * 100)}% sure</span>` : "";
+        const bars = ORDER.filter((s) => s in probs).map((s) => `
+            <div class="prob${s === key ? " top" : ""}" style="--c:${SP_COLORS[s]}">
+              <span>${cap(s)}</span>
+              <div class="prob-track"><div class="prob-fill" data-w="${(probs[s] * 100).toFixed(1)}"></div></div>
+              <span class="prob-pct">${Math.round(probs[s] * 100)}%</span>
+            </div>`).join("");
+        const barsHtml = bars ? `<div class="probs" aria-label="Class probabilities">${bars}</div>` : "";
+
         if (!info) {
-          resultBody.innerHTML = `<div class="fade-in"><p class="result-title">${raw}</p></div>`;
+          resultBody.innerHTML = `<div class="fade-in"><p class="result-title">${raw} ${confPill}</p>${barsHtml}</div>`;
+          animateBars();
           return;
         }
         resultBody.innerHTML = `
           <div class="fade-in">
-            <p class="result-title">${info.name}</p>
+            <p class="result-title">${info.name} ${confPill}</p>
             <p class="result-text">${info.text}</p>
-            <div class="traits">${info.traits.map((t) => `<span class="trait">${t}</span>`).join("")}</div>
+            ${barsHtml}
           </div>`;
+        animateBars();
         setFlowerColors(key);
         $("plate-no").textContent = info.plate;
         setSpeciesFooter(key);
@@ -894,6 +1128,7 @@
       function onValuesChanged() {
         updateFlower();
         highlightPreset();
+        updateChart();
         if (hasResult) resultEl.classList.add("stale");
       }
 
@@ -948,7 +1183,7 @@
             throw new Error(typeof detail.detail === "string" ? detail.detail : `Server responded with ${res.status}.`);
           }
           const data = await res.json();
-          renderResult(data.species);
+          renderResult(data);
         } catch (err) {
           renderError(err.message && err.message !== "Failed to fetch"
             ? err.message
@@ -960,10 +1195,145 @@
         }
       });
 
+      /* ---------- Callout highlight on field focus/hover ---------- */
+      FIELDS.forEach((f) => {
+        const fieldEl = $(f).closest(".field");
+        const callout = $("callout-" + (f.startsWith("petal") ? "petal" : "sepal"));
+        const on = () => callout.classList.add("hl");
+        const off = () => { if (!fieldEl.contains(document.activeElement)) callout.classList.remove("hl"); };
+        fieldEl.addEventListener("mouseenter", on);
+        fieldEl.addEventListener("mouseleave", off);
+        fieldEl.addEventListener("focusin", on);
+        fieldEl.addEventListener("focusout", () => setTimeout(off, 0));
+      });
+
+      /* ---------- Atlas scatter plot ---------- */
+      const ORDER = ["setosa", "versicolor", "virginica"];
+      const SP_COLORS = { setosa: "#7fa36f", versicolor: "#d1a24a", virginica: "#7259ad" };
+      const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+      const CH = { w: 600, h: 340, l: 46, r: 16, t: 16, b: 40 };
+      const VIEWS = {
+        petal: { x: "petal_length", y: "petal_width", xd: [0.5, 7.5], yd: [0, 2.8], xs: 1, ys: 0.5, xl: "Petal length (cm)", yl: "Petal width (cm)" },
+        sepal: { x: "sepal_length", y: "sepal_width", xd: [4, 8.2], yd: [1.8, 4.6], xs: 0.5, ys: 0.5, xl: "Sepal length (cm)", yl: "Sepal width (cm)" },
+      };
+      const scatter = $("scatter");
+      let samples = [];
+      let points = [];
+      let view = "petal";
+
+      const sx = (v, d) => CH.l + (clamp(v, d[0], d[1]) - d[0]) / (d[1] - d[0]) * (CH.w - CH.l - CH.r);
+      const sy = (v, d) => CH.h - CH.b - (clamp(v, d[0], d[1]) - d[0]) / (d[1] - d[0]) * (CH.h - CH.t - CH.b);
+
+      function buildScatter() {
+        scatter.innerHTML = `
+          <g id="sc-axes"></g>
+          <g id="sc-points">${samples.map((s, i) => `
+            <circle class="pt" data-i="${i}" r="4.2" fill="${SP_COLORS[s.species] || "#999"}">
+              <title>${cap(s.species)}: sepal ${s.sepal_length} × ${s.sepal_width} cm, petal ${s.petal_length} × ${s.petal_width} cm</title>
+            </circle>`).join("")}
+          </g>
+          <g id="sc-cross-v" class="cross"><line x1="0" x2="0" y1="${CH.t}" y2="${CH.h - CH.b}" /></g>
+          <g id="sc-cross-h" class="cross"><line x1="${CH.l}" x2="${CH.w - CH.r}" y1="0" y2="0" /></g>
+          <g id="sc-you" class="you">
+            <circle class="you-pulse" r="9" />
+            <circle class="you-ring" r="7.5" />
+            <circle class="you-dot" r="2.6" />
+            <text y="-14" text-anchor="middle">YOU</text>
+          </g>`;
+        points = [...scatter.querySelectorAll(".pt")];
+        renderView();
+        requestAnimationFrame(() => scatter.classList.add("ready"));
+      }
+
+      function renderView() {
+        const v = VIEWS[view];
+        let s = "";
+        for (let x = Math.ceil(v.xd[0] / v.xs) * v.xs; x <= v.xd[1] + 1e-9; x = round1(x + v.xs)) {
+          const px = sx(x, v.xd);
+          s += `<line class="grid" x1="${px}" x2="${px}" y1="${CH.t}" y2="${CH.h - CH.b}" />
+                <text class="tick" x="${px}" y="${CH.h - CH.b + 16}" text-anchor="middle">${x}</text>`;
+        }
+        for (let y = Math.ceil(v.yd[0] / v.ys) * v.ys; y <= v.yd[1] + 1e-9; y = round1(y + v.ys)) {
+          const py = sy(y, v.yd);
+          s += `<line class="grid" x1="${CH.l}" x2="${CH.w - CH.r}" y1="${py}" y2="${py}" />
+                <text class="tick" x="${CH.l - 8}" y="${py + 3}" text-anchor="end">${y}</text>`;
+        }
+        s += `<line class="axis" x1="${CH.l}" x2="${CH.w - CH.r}" y1="${CH.h - CH.b}" y2="${CH.h - CH.b}" />
+              <text class="axis-label" x="${CH.w - CH.r}" y="${CH.h - 4}" text-anchor="end">${v.xl}</text>
+              <text class="axis-label" transform="translate(10 ${CH.t}) rotate(-90)" text-anchor="end">${v.yl}</text>`;
+        $("sc-axes").innerHTML = s;
+
+        points.forEach((c) => {
+          const d = samples[c.dataset.i];
+          c.style.transform = `translate(${sx(d[v.x], v.xd)}px, ${sy(d[v.y], v.yd)}px)`;
+        });
+        updateChart();
+      }
+
+      function updateChart() {
+        if (!samples.length) return;
+        const v = VIEWS[view];
+        const vals = getValues();
+        const ok = FIELDS.every((f) => Number.isFinite(vals[f]) && vals[f] > 0);
+        const you = $("sc-you");
+        [you, $("sc-cross-v"), $("sc-cross-h")].forEach((el) => el.style.opacity = ok ? 1 : 0);
+        if (!ok) return;
+
+        const px = sx(vals[v.x], v.xd), py = sy(vals[v.y], v.yd);
+        you.style.transform = `translate(${px}px, ${py}px)`;
+        $("sc-cross-v").style.transform = `translateX(${px}px)`;
+        $("sc-cross-h").style.transform = `translateY(${py}px)`;
+
+        // k-nearest neighbours across all four measurements
+        const nn = samples
+          .map((s, i) => ({ i, d: FIELDS.reduce((a, f) => a + (s[f] - vals[f]) ** 2, 0) }))
+          .sort((a, b) => a.d - b.d)
+          .slice(0, 5);
+        const nnSet = new Set(nn.map((n) => n.i));
+        points.forEach((c, i) => c.classList.toggle("nb", nnSet.has(i)));
+
+        const counts = {};
+        nn.forEach(({ i }) => { const sp = samples[i].species; counts[sp] = (counts[sp] || 0) + 1; });
+        const ranked = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+        $("nb-title").textContent =
+          ranked.length === 1 ? `All 5 are ${cap(ranked[0][0])}`
+          : ranked[0][1] === ranked[1][1] ? "A close call"
+          : `Mostly ${cap(ranked[0][0])}`;
+        $("nb-dots").innerHTML = nn.map(({ i }) =>
+          `<span style="background:${SP_COLORS[samples[i].species]}" title="${cap(samples[i].species)}"></span>`).join("");
+        $("nb-detail").textContent =
+          `${ranked.map(([sp, n]) => `${n} ${sp}`).join(" · ")}. The 5 most similar recorded flowers across all four measurements.`;
+      }
+
+      async function loadSamples() {
+        try {
+          const res = await fetch("/samples");
+          if (!res.ok) throw new Error(res.status);
+          samples = await res.json();
+          if (!samples.length) throw new Error("empty");
+          ORDER.forEach((sp) => $("lg-" + sp).textContent = `${samples.filter((s) => s.species === sp).length} flowers`);
+          $("atlas-count").textContent = samples.length;
+          buildScatter();
+        } catch {
+          scatter.innerHTML = `<text class="axis-label" x="300" y="170" text-anchor="middle">Reference data is unavailable right now.</text>`;
+          $("nb-title").textContent = "Unavailable";
+        }
+      }
+
+      document.querySelectorAll(".seg-btn").forEach((b) => b.addEventListener("click", () => {
+        view = b.dataset.view;
+        document.querySelectorAll(".seg-btn").forEach((x) => {
+          x.classList.toggle("active", x === b);
+          x.setAttribute("aria-pressed", String(x === b));
+        });
+        if (samples.length) renderView();
+      }));
+
       /* ---------- Init ---------- */
       setFlowerColors("versicolor");
       applyPreset("setosa");
       renderIdle();
+      loadSamples();
     })();
   </script>
 </body>
