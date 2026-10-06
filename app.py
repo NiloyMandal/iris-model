@@ -4,6 +4,7 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
+from fastapi.staticfiles import StaticFiles
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -52,3 +53,6 @@ async def predict(features: IrisFeatures):
     except Exception as e:
         logger.error(f"Error during prediction: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# Mount the static directory to serve the frontend (must be at the end so it doesn't override API routes)
+app.mount("/", StaticFiles(directory="static", html=True), name="static")

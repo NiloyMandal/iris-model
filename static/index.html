@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iris Predictor | Floral AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --glass-bg: rgba(20, 20, 30, 0.45);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --text-color: #f0f0f5;
+            --accent: #d782ff;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: url('bg.jpg') no-repeat center center/cover;
+            background-color: #0b0b13; /* Fallback */
+            color: var(--text-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Subtle overlay to enhance text readability on detailed backgrounds */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, rgba(10, 5, 20, 0.6) 0%, rgba(20, 5, 30, 0.4) 100%);
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+            100% { transform: translateY(0px); }
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+            font-weight: 600;
+            background: linear-gradient(90deg, #ffd1ff, #a960ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            text-align: center;
+            font-size: 0.95rem;
+            color: #ccc;
+            margin-bottom: 32px;
+            font-weight: 300;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+            color: #ddd;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        input:focus {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: var(--accent);
+            box-shadow: 0 0 12px rgba(215, 130, 255, 0.3);
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #b04bff, #ff6beb);
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(176, 75, 255, 0.4);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(176, 75, 255, 0.6);
+            background: linear-gradient(135deg, #a338f5, #f358df);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .result-box {
+            margin-top: 24px;
+            padding: 20px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            opacity: 0;
+            transform: scale(0.95);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: none;
+        }
+
+        .result-box.show {
+            opacity: 1;
+            transform: scale(1);
+            display: block;
+        }
+
+        .result-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #bbb;
+            margin-bottom: 5px;
+        }
+
+        .result-species {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--accent);
+            text-shadow: 0 0 10px rgba(215, 130, 255, 0.5);
+            text-transform: capitalize;
+        }
+        
+        .loader {
+            display: none;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Iris Predictor</h1>
+        <p class="subtitle">Enter the petal & sepal dimensions to predict the species.</p>
+
+        <form id="predictForm">
+            <div class="input-group">
+                <label for="sepal_length">Sepal Length (cm)</label>
+                <input type="number" step="0.1" id="sepal_length" value="5.1" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="sepal_width">Sepal Width (cm)</label>
+                <input type="number" step="0.1" id="sepal_width" value="3.5" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="petal_length">Petal Length (cm)</label>
+                <input type="number" step="0.1" id="petal_length" value="1.4" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="petal_width">Petal Width (cm)</label>
+                <input type="number" step="0.1" id="petal_width" value="0.2" required>
+            </div>
+
+            <button type="submit" id="submitBtn">
+                <span id="btnText">Identify Species</span>
+                <div class="loader" id="btnLoader"></div>
+            </button>
+        </form>
+
+        <div class="result-box" id="resultBox">
+            <div class="result-title">Predicted Species</div>
+            <div class="result-species" id="speciesResult">-</div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('predictForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btnText = document.getElementById('btnText');
+            const btnLoader = document.getElementById('btnLoader');
+            const resultBox = document.getElementById('resultBox');
+            const speciesResult = document.getElementById('speciesResult');
+
+            // Loading state
+            btnText.style.display = 'none';
+            btnLoader.style.display = 'block';
+            resultBox.classList.remove('show');
+
+            const payload = {
+                sepal_length: parseFloat(document.getElementById('sepal_length').value),
+                sepal_width: parseFloat(document.getElementById('sepal_width').value),
+                petal_length: parseFloat(document.getElementById('petal_length').value),
+                petal_width: parseFloat(document.getElementById('petal_width').value)
+            };
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    speciesResult.innerText = data.species;
+                    speciesResult.style.color = 'var(--accent)';
+                } else {
+                    speciesResult.innerText = 'Error';
+                    speciesResult.style.color = '#ff4b4b';
+                    console.error(data);
+                }
+            } catch (error) {
+                speciesResult.innerText = 'Failed';
+                speciesResult.style.color = '#ff4b4b';
+                console.error(error);
+            } finally {
+                // Restore state
+                btnText.style.display = 'block';
+                btnLoader.style.display = 'none';
+                
+                // Show result box with a small delay for animation
+                setTimeout(() => {
+                    resultBox.style.display = 'block';
+                    // Trigger reflow
+                    void resultBox.offsetWidth;
+                    resultBox.classList.add('show');
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>
