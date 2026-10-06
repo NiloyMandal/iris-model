@@ -15,13 +15,13 @@ def test_predict_endpoint():
         "petal_width": 0.2
     }
     
-    response = client.post("/predict", json=payload)
-    
-    assert response.status_code == 200
-    data = response.json()
-    assert "species" in data
-    # For a deterministic model with standard data, it will likely return "setosa"
-    assert data["species"] == "setosa"
+    with TestClient(app) as client:
+        response = client.post("/predict", json=payload)
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert "species" in data
+        assert data["species"] == "setosa"
     
 def test_invalid_input():
     # Missing petal_width
@@ -30,5 +30,6 @@ def test_invalid_input():
         "sepal_width": 3.5,
         "petal_length": 1.4
     }
-    response = client.post("/predict", json=payload)
-    assert response.status_code == 422 # Unprocessable Entity (Validation Error)
+    with TestClient(app) as client:
+        response = client.post("/predict", json=payload)
+        assert response.status_code == 422 # Unprocessable Entity (Validation Error)
