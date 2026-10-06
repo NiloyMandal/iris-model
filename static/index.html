@@ -40,6 +40,7 @@
       --radius-lg: 26px;
       --radius-md: 12px;
       --ease: cubic-bezier(.22, .8, .26, 1);
+      --spring: cubic-bezier(.34, 1.56, .64, 1);
     }
 
     *, *::before, *::after { box-sizing: border-box; }
@@ -106,6 +107,7 @@
     }
 
     /* ---------- Botanical panel ---------- */
+    .botanical, .card, .atlas { transform-style: preserve-3d; will-change: transform; transition: transform .4s ease-out; }
     .botanical {
       position: relative;
       display: flex;
@@ -214,6 +216,7 @@
     }
     .legend span { display: inline-flex; align-items: center; gap: 7px; }
     .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+    .pt { cursor: crosshair; transition: r 0.2s; }
     .dot.petal-dot { background: var(--petal-mid); transition: background .8s; }
     .dot.sepal-dot { background: var(--leaf); }
     .anatomy p {
@@ -751,7 +754,7 @@
               <path d="M152 336 C 182 298, 200 262, 210 228" stroke="#bcd3ad" stroke-width="1" fill="none" opacity=".7" />
 
               <!-- Flower head -->
-              <g transform="translate(150 168)">
+              <g id="flower-head" style="transition: transform .1s ease-out; transform-origin: 150px 168px;" transform="translate(150 168)">
                 <!-- Falls (sepals) -->
                 <g id="falls">
                   <g transform="rotate(-125)"><path class="fall" d="M0 0 C -26 -14, -30 -62, 0 -78 C 30 -62, 26 -14, 0 0 Z" fill="url(#gFall)" /></g>
@@ -860,9 +863,9 @@
 
           <p class="note">All values in centimeters. Sliders cover typical exploration ranges; you can type any positive measurement.</p>
 
-          <button type="submit" class="discover" id="discover-btn">
-            <span id="discover-label">Discover the species</span>
-            <span class="arrow" aria-hidden="true">↗</span>
+          <button type="button" class="discover" id="random-btn">
+            <span id="discover-label">Surprise me</span>
+            <span class="arrow" aria-hidden="true">&#9860;</span>
           </button>
         </form>
 
@@ -931,6 +934,34 @@
 
   <script>
     (() => {
+      window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      window.playSound = function(type) {
+        if (!window.audioCtx || window.audioCtx.state === "suspended") return;
+        const now = window.audioCtx.currentTime;
+        const osc = window.audioCtx.createOscillator();
+        const gain = window.audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(window.audioCtx.destination);
+        if (type === "tick") {
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(600, now);
+          osc.frequency.exponentialRampToValueAtTime(300, now + 0.05);
+          gain.gain.setValueAtTime(0.015, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+          osc.start(now); osc.stop(now + 0.05);
+        } else if (type === "pop") {
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(300, now);
+          osc.frequency.exponentialRampToValueAtTime(500, now + 0.1);
+          gain.gain.setValueAtTime(0.04, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+          osc.start(now); osc.stop(now + 0.1);
+        }
+      }
+      document.body.addEventListener("pointerdown", () => {
+        if (window.audioCtx && window.audioCtx.state === "suspended") window.audioCtx.resume();
+      }, {once: true});
+
       const FIELDS = ["sepal_length", "sepal_width", "petal_length", "petal_width"];
 
       const PRESETS = {
@@ -1001,8 +1032,7 @@
       }
 
       /* ---------- Illustration ---------- */
-      function updateFlower() {
-        const v = getValues();
+      function applyFlowerScale(v) {
         const pl = Number.isFinite(v.petal_length) ? v.petal_length : 4;
         const pw = Number.isFinite(v.petal_width) ? v.petal_width : 1.2;
         const sl = Number.isFinite(v.sepal_length) ? v.sepal_length : 6;
@@ -1019,6 +1049,10 @@
         const fmt = (n) => Number.isFinite(n) ? n.toFixed(1) : "–";
         $("c-petal-val").textContent = `${fmt(v.petal_length)} × ${fmt(v.petal_width)} cm`;
         $("c-sepal-val").textContent = `${fmt(v.sepal_length)} × ${fmt(v.sepal_width)} cm`;
+      }
+
+      function updateFlower() {
+        applyFlowerScale(getValues());
       }
 
       function setFlowerColors(species) {
@@ -1125,11 +1159,40 @@
           s.classList.toggle("on", s.dataset.sp === key));
       }
 
+      let predictTimer;
+      let currentSp = "versicolor";
+
+      async function doPredict() {
+        const values = getValues();
+        const bad = FIELDS.filter((f) => !Number.isFinite(values[f]) || values[f] <= 0);
+        if (bad.length) return;
+
+        try {
+          const res = await fetch("/predict", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(values),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            renderResult(data);
+            const newSp = data.species.toLowerCase().replace(/^iris[-_ ]?/, "");
+            if (newSp !== currentSp) {
+              if(typeof window.playSound === 'function') window.playSound("pop");
+              currentSp = newSp;
+            }
+          }
+        } catch (err) {}
+      }
+
       function onValuesChanged() {
         updateFlower();
         highlightPreset();
         updateChart();
-        if (hasResult) resultEl.classList.add("stale");
+        if(typeof window.playSound === 'function') window.playSound("tick");
+        clearTimeout(predictTimer);
+        predictTimer = setTimeout(() => doPredict(), 120);
+        if (hasResult) resultEl.classList.remove("stale");
       }
 
       /* ---------- Wiring ---------- */
@@ -1157,42 +1220,36 @@
         renderIdle();
       });
 
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const values = getValues();
-        const bad = FIELDS.filter((f) => !Number.isFinite(values[f]) || values[f] <= 0);
-        if (bad.length) {
-          bad.forEach((f) => $(f).parentElement.classList.add("invalid"));
-          renderError("Please enter a positive number for every measurement.");
-          return;
-        }
+      $("random-btn").addEventListener("click", () => {
+        if (!samples.length) return;
+        const s = samples[Math.floor(Math.random() * samples.length)];
+        FIELDS.forEach((f) => {
+          $(f).value = s[f];
+          syncRangeFromNumber(f);
+        });
+        if(typeof window.playSound === 'function') window.playSound("pop");
+        onValuesChanged();
+      });
 
-        btn.disabled = true;
-        btn.classList.add("loading");
-        btnLabel.textContent = "Consulting the model…";
-        renderLoading();
+      document.addEventListener("mousemove", (e) => {
+        const w = window.innerWidth, h = window.innerHeight;
+        const x = (e.clientX / w - 0.5) * 2;
+        const y = (e.clientY / h - 0.5) * 2;
+        
+        const head = $("flower-head");
+        if (head) head.style.transform = `translate(${150 + x * 6}px, ${168 + y * 6}px) rotate(${x * 4}deg)`;
 
-        try {
-          const res = await fetch("/predict", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(values),
-          });
-          if (!res.ok) {
-            const detail = await res.json().catch(() => ({}));
-            throw new Error(typeof detail.detail === "string" ? detail.detail : `Server responded with ${res.status}.`);
+        document.querySelectorAll(".botanical, .card, .atlas").forEach(el => {
+          const rect = el.getBoundingClientRect();
+          const elX = clamp((e.clientX - rect.left - rect.width/2) / (rect.width/2), -1, 1);
+          const elY = clamp((e.clientY - rect.top - rect.height/2) / (rect.height/2), -1, 1);
+          
+          if(e.clientX > rect.left && e.clientX < rect.right && e.clientY > rect.top && e.clientY < rect.bottom) {
+             el.style.transform = `perspective(1200px) rotateX(${-elY * 2.5}deg) rotateY(${elX * 2.5}deg) translateZ(4px)`;
+          } else {
+             el.style.transform = `perspective(1200px) rotateX(0) rotateY(0) translateZ(0)`;
           }
-          const data = await res.json();
-          renderResult(data);
-        } catch (err) {
-          renderError(err.message && err.message !== "Failed to fetch"
-            ? err.message
-            : "Couldn't reach the model. The server may be waking up — try again in a moment.");
-        } finally {
-          btn.disabled = false;
-          btn.classList.remove("loading");
-          btnLabel.textContent = "Discover the species";
-        }
+        });
       });
 
       /* ---------- Callout highlight on field focus/hover ---------- */
@@ -1241,6 +1298,20 @@
             <text y="-14" text-anchor="middle">YOU</text>
           </g>`;
         points = [...scatter.querySelectorAll(".pt")];
+        points.forEach((c) => {
+          c.addEventListener("mouseenter", () => {
+            const d = samples[c.dataset.i];
+            applyFlowerScale(d);
+            setFlowerColors(d.species);
+            if(typeof window.playSound === 'function') window.playSound("tick");
+            c.setAttribute("r", "7");
+          });
+          c.addEventListener("mouseleave", () => {
+            applyFlowerScale(getValues());
+            setFlowerColors(currentSp);
+            c.setAttribute("r", "4.2");
+          });
+        });
         renderView();
         requestAnimationFrame(() => scatter.classList.add("ready"));
       }
